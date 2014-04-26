@@ -4,10 +4,12 @@ import java.util.Date;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.KeyValueTextInputFormat;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
@@ -37,22 +39,51 @@ public class SODriver extends Configured implements Tool {
 	private void preprocessData(String[] args) throws IOException {
 		System.out.println("Preprocessing..");
 		JobConf conf = new JobConf(SODriver.class);
-		conf.setMapperClass(PreProcessing.PreProcessMapper.class);
-		conf.setReducerClass(Reducer.class);
-		conf.setNumReduceTasks(0);
+		conf.setMapperClass(PreProcessing.UserQuestionPairMapper.class);
+		conf.setReducerClass(PreProcessing.QuestionQuestionPairReducer.class);
 		conf.setJarByClass(SODriver.class);
 
 		conf.setMapOutputKeyClass(Text.class);
 		conf.setMapOutputValueClass(Text.class);
 
 		conf.setOutputKeyClass(Text.class);
-		conf.setOutputValueClass(Text.class);
+		conf.setOutputValueClass(IntWritable.class);
 
 		conf.setInputFormat(TextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
 		FileInputFormat.addInputPath(conf, new Path(args[0]));
 		FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void cooccurence(String[] args) throws IOException {
+		System.out.println("Cooccurence..");
+		JobConf conf = new JobConf(SODriver.class);
+		conf.setMapperClass(PreProcessing.QuestionQuestionSumMapper.class);
+		conf.setReducerClass(PreProcessing.QuestionQuestionSumReducer.class);
+		conf.setJarByClass(SODriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(IntWritable.class);
+
+		conf.setOutputKeyClass(Text.class);
+		conf.setOutputValueClass(IntWritable.class);
+
+		conf.setInputFormat(KeyValueTextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[1]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[2]));
 
 		Job job = new Job(conf);
 
@@ -120,6 +151,7 @@ public class SODriver extends Configured implements Tool {
 
 		startTimer();
 		preprocessData(args);
+		cooccurence(args);
 		stopTimer();
 
 		printline();
@@ -132,8 +164,8 @@ public class SODriver extends Configured implements Tool {
 	public static void main(String args[]) throws Exception {
 
 		System.out.println("Program started");
-		if (args.length != 2) {
-			System.err.println("Usage: SODriver <input> <output>");
+		if (args.length != 3) {
+			System.err.println("Usage: SODriver <input> <temp> <output>");
 			System.exit(-1);
 		}
 

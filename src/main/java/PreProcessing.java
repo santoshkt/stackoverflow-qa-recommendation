@@ -1,14 +1,20 @@
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+
 import java.io.IOException;
-import java.util.StringTokenizer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
 
 public class PreProcessing {
-	public static class PreProcessMapper extends MapReduceBase implements
+	public static class UserQuestionPairMapper extends MapReduceBase implements
 			Mapper<LongWritable, Text, Text, Text> {
 
 		public void map(LongWritable key, Text value,
@@ -17,46 +23,81 @@ public class PreProcessing {
 
 			// Input: XML String of the format <row key="value" />
 
-			StringTokenizer attributeTokens = new StringTokenizer(
-					value.toString());
+			// Parse the input string into a nice map
+			Map<String, String> parsed = Utils.transformXmlToMap(value
+					.toString());
 
-			String postTypeId = null;
-			String parentId = null;
-			String ownerUserId = null;
+			// Grab the "Text" field, since that is what we are counting over
+			String postTypeId = parsed.get("PostTypeId");
+			String parentId = parsed.get("ParentId");
+			String ownerUserId = parsed.get("OwnerUserId");
 
-			while (attributeTokens.hasMoreTokens()) {
+			if (postTypeId != null && postTypeId.equals("2")) {
 
-				String[] keyValue;
-
-				String attributeKeyValue = (String) attributeTokens.nextToken();
-				if (attributeKeyValue.contains("PostTypeId")) {
-					keyValue = attributeKeyValue.split("[\"]");
-					postTypeId = keyValue[1];
-					if (postTypeId.equals("2")) {
-						continue;
-					} else
-						break;
-				}
-				if (attributeKeyValue.contains("ParentId")) {
-					keyValue = attributeKeyValue.split("[\"]");
-					parentId = keyValue[1];
-				} else if (attributeKeyValue.contains("OwnerUserId")) {
-					keyValue = attributeKeyValue.split("[\"]");
-					ownerUserId = keyValue[1];
-
-					try {
-						if (parentId != null && ownerUserId != null) {
-							output.collect(null, new Text(parentId + ","
-									+ ownerUserId));
-						}
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+				if (parentId != null && ownerUserId != null) {
+					output.collect(new Text(ownerUserId), new Text(parentId));
 				}
 			}
 
-			// Output: QuestionID, UserID
+			// Output: UserId, QuestionId
+		}
+
+	}
+
+	public static class QuestionQuestionPairReducer extends MapReduceBase
+			implements Reducer<Text, Text, Text, IntWritable> {
+
+		public void reduce(Text key, Iterator<Text> values,
+				OutputCollector<Text, IntWritable> output, Reporter reporter)
+				throws IOException {
+
+			ArrayList<String> questions = new ArrayList<String>();
+			while (values.hasNext()) {
+				questions.add(values.next().toString());
+			}
+
+			Collections.sort(questions);
+
+			// For each user, write pairs of the questions he rated.
+			// eg: question1,question2 count
+			for (String question1 : questions) {
+				for (String question2 : questions) {
+					if (question1.compareTo(question2) < 0)
+						output.collect(new Text(question1 + "," + question2),
+								new IntWritable(1));
+				}
+			}
+		}
+	}
+
+	public static class QuestionQuestionSumMapper extends MapReduceBase
+			implements Mapper<Text, Text, Text, IntWritable> {
+
+		public void map(Text key, Text value,
+				OutputCollector<Text, IntWritable> output, Reporter reporter)
+				throws IOException {
+
+			// Input: qid1,qid2 1
+			output.collect(key, new IntWritable(Integer.parseInt(value.toString())));
+			// Output: qid1,qid2 1
+		}
+
+	}
+
+	public static class QuestionQuestionSumReducer extends MapReduceBase
+			implements Reducer<Text, IntWritable, Text, IntWritable> {
+		public void reduce(Text key, Iterator<IntWritable> values,
+				OutputCollector<Text, IntWritable> output, Reporter reporter)
+				throws IOException {
+
+			int sum = 0;
+			while (values.hasNext()) {
+				sum = sum + values.next().get();
+			}
+
+			output.collect(key, new IntWritable(sum));
 
 		}
 	}
+
 }
