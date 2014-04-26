@@ -67,7 +67,7 @@ public class SODriver extends Configured implements Tool {
 	}
 	
 	private void cooccurence(String[] args) throws IOException {
-		System.out.println("Cooccurence..");
+		System.out.println("Co-occurrence..");
 		JobConf conf = new JobConf(SODriver.class);
 		conf.setMapperClass(PreProcessing.QuestionQuestionSumMapper.class);
 		conf.setReducerClass(PreProcessing.QuestionQuestionSumReducer.class);
@@ -84,6 +84,36 @@ public class SODriver extends Configured implements Tool {
 
 		FileInputFormat.addInputPath(conf, new Path(args[1]));
 		FileOutputFormat.setOutputPath(conf, new Path(args[2]));
+
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void userPreference(String[] args) throws IOException {
+		System.out.println("User Reference Matrix....");
+		JobConf conf = new JobConf(SODriver.class);
+		conf.setMapperClass(PreProcessing.UserIDQuestionPairMatrix.class);
+		conf.setJarByClass(SODriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(IntWritable.class);
+
+		//conf.setOutputKeyClass(Text.class);
+		//conf.setOutputValueClass(IntWritable.class);
+		conf.setNumReduceTasks(0);
+
+		conf.setInputFormat(TextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[3]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[4]));
 
 		Job job = new Job(conf);
 
@@ -152,6 +182,7 @@ public class SODriver extends Configured implements Tool {
 		startTimer();
 		preprocessData(args);
 		cooccurence(args);
+		userPreference(args);
 		stopTimer();
 
 		printline();
@@ -164,8 +195,8 @@ public class SODriver extends Configured implements Tool {
 	public static void main(String args[]) throws Exception {
 
 		System.out.println("Program started");
-		if (args.length != 3) {
-			System.err.println("Usage: SODriver <input> <temp> <output>");
+		if (args.length != 5) {
+			System.err.println("Usage: SODriver <input> <temp> <output> <input2> <output2>");
 			System.exit(-1);
 		}
 
