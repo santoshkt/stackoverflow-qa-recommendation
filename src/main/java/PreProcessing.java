@@ -63,7 +63,7 @@ public class PreProcessing {
 			for (String question1 : questions) {
 				for (String question2 : questions) {
 					if (question1.compareTo(question2) < 0)
-						output.collect(new Text(question1 + "," + question2),
+						output.collect(new Text("A,"+question1 + "," + question2),
 								new IntWritable(1));
 				}
 			}
