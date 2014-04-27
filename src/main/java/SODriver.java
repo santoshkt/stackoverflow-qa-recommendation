@@ -68,7 +68,7 @@ public class SODriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void cooccurence(String[] args) throws IOException {
 		System.out.println("Co-occurrence..");
 		JobConf conf = new JobConf(SODriver.class);
@@ -98,7 +98,7 @@ public class SODriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void userPreference(String[] args) throws IOException {
 		System.out.println("User Reference Matrix....");
 		JobConf conf = new JobConf(SODriver.class);
@@ -108,8 +108,8 @@ public class SODriver extends Configured implements Tool {
 		conf.setMapOutputKeyClass(Text.class);
 		conf.setMapOutputValueClass(IntWritable.class);
 
-		//conf.setOutputKeyClass(Text.class);
-		//conf.setOutputValueClass(IntWritable.class);
+		// conf.setOutputKeyClass(Text.class);
+		// conf.setOutputValueClass(IntWritable.class);
 		conf.setNumReduceTasks(0);
 
 		conf.setInputFormat(TextInputFormat.class);
@@ -129,7 +129,7 @@ public class SODriver extends Configured implements Tool {
 		}
 	}
 
-	private void userQuestionPairs(String args[]) throws IOException{
+	private void userQuestionPairs(String args[]) throws IOException {
 		System.out.println("userQuestion pairs..");
 		JobConf conf = new JobConf(SODriver.class);
 		conf.setMapperClass(PreProcessing.UserQuestionPairMapper.class);
@@ -147,7 +147,8 @@ public class SODriver extends Configured implements Tool {
 		conf.setOutputFormat(TextOutputFormat.class);
 
 		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "userQuestion"));
+		FileOutputFormat
+				.setOutputPath(conf, new Path(args[0] + "userQuestion"));
 
 		Job job = new Job(conf);
 
@@ -159,8 +160,9 @@ public class SODriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
-	
-	private static void userTagPairs(String args[]) throws IOException, URISyntaxException{
+
+	private static void userTagPairs(String args[]) throws IOException,
+			URISyntaxException {
 		System.out.println("User Tag pairs..");
 		JobConf conf = new JobConf(SODriver.class);
 		conf.setMapperClass(PreProcessing.QuestionTagMapper.class);
@@ -179,7 +181,7 @@ public class SODriver extends Configured implements Tool {
 		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
 		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "userTag"));
 		conf.set("path", args[0]);
-		
+
 		Job job = new Job(conf);
 
 		JobControl jobControl = new JobControl("jobControl");
@@ -255,8 +257,8 @@ public class SODriver extends Configured implements Tool {
 		cooccurence(args);
 		stopTimer();
 		printline();
-		System.out.println("Total time for co-occurence: "
-				+ getJobTimeInSecs() + "seconds");
+		System.out.println("Total time for co-occurence: " + getJobTimeInSecs()
+				+ "seconds");
 		printline();
 		startTimer();
 		userQuestionPairs(args);
@@ -269,16 +271,17 @@ public class SODriver extends Configured implements Tool {
 		userTagPairs(args);
 		stopTimer();
 		printline();
-		System.out.println("Total time for userTagPairs: "
-				+ getJobTimeInSecs() + "seconds");
+		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()
+				+ "seconds");
 		printline();
 
 		startTimer();
-		userPreference(args);
+		// userPreference(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for userPreference: "
 				+ getJobTimeInSecs() + "seconds");
+		printline();
 		return 0;
 	}
 
