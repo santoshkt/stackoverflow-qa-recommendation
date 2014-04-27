@@ -16,6 +16,7 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapred.lib.IdentityMapper;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -54,7 +55,7 @@ public class SODriver extends Configured implements Tool {
 		conf.setOutputFormat(TextOutputFormat.class);
 
 		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "temp"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "questionsCooccurence"));
 
 		Job job = new Job(conf);
 
@@ -83,7 +84,7 @@ public class SODriver extends Configured implements Tool {
 		conf.setInputFormat(KeyValueTextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[0] + "temp"));
+		FileInputFormat.addInputPath(conf, new Path(args[0] + "questionsCooccurence"));
 		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
 
 		Job job = new Job(conf);
@@ -181,6 +182,41 @@ public class SODriver extends Configured implements Tool {
 		FileInputFormat.addInputPath(conf, new Path(args[0] + args[2]));
 		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "matrixProductOutput"));
 
+		conf.set("path", args[0]);
+		
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void top10questions(String args[]) throws IOException,
+			URISyntaxException {
+		System.out.println("Suggesting top 10 questions for each user..");
+		JobConf conf = new JobConf(SODriver.class);
+		conf.setMapperClass(IdentityMapper.class);
+		conf.setReducerClass(Top10Recommender.SOTop10Reducer.class);
+		conf.setJarByClass(SODriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(Text.class);
+
+		conf.setOutputKeyClass(Text.class);
+		conf.setOutputValueClass(Text.class);
+
+		conf.setInputFormat(TextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[0]
+				+ "matrixProductOutput"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[1]));
+		conf.set("path", args[0]);
+
 		Job job = new Job(conf);
 
 		JobControl jobControl = new JobControl("jobControl");
@@ -273,12 +309,27 @@ public class SODriver extends Configured implements Tool {
 		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()
 				+ "seconds");
 		printline();
-		startTimer();
+
+		// 2. Matrix multiplication of Questions Co-occurence matrix and User
+		// Preference matrix
+
+        startTimer();
 		matrixMultiplicationPairs(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()
 				+ "seconds");
+		
+		
+		// 3. Recommend top questions
+		startTimer();
+		top10questions(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for Top 10 recommendation: "
+				+ getJobTimeInSecs() + "seconds");
+		printline();
+
 		return 0;
 	}
 
