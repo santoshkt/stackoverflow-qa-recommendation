@@ -1,8 +1,11 @@
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Date;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -52,8 +55,8 @@ public class SODriver extends Configured implements Tool {
 		conf.setInputFormat(TextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[0]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "temp"));
 
 		Job job = new Job(conf);
 
@@ -82,8 +85,8 @@ public class SODriver extends Configured implements Tool {
 		conf.setInputFormat(KeyValueTextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[1]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[2]));
+		FileInputFormat.addInputPath(conf, new Path(args[0] + "temp"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
 
 		Job job = new Job(conf);
 
@@ -112,9 +115,71 @@ public class SODriver extends Configured implements Tool {
 		conf.setInputFormat(TextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[3]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[4]));
+		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
+		FileOutputFormat.setOutputPath(conf, new Path("userPreference"));
 
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void userQuestionPairs(String args[]) throws IOException{
+		System.out.println("userQuestion pairs..");
+		JobConf conf = new JobConf(SODriver.class);
+		conf.setMapperClass(PreProcessing.UserQuestionPairMapper.class);
+		conf.setReducerClass(Reducer.class);
+		conf.setNumReduceTasks(0);
+		conf.setJarByClass(SODriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(Text.class);
+
+		conf.setOutputKeyClass(Text.class);
+		conf.setOutputValueClass(Text.class);
+
+		conf.setInputFormat(TextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "userQuestion"));
+
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static void userTagPairs(String args[]) throws IOException, URISyntaxException{
+		System.out.println("User Tag pairs..");
+		JobConf conf = new JobConf(SODriver.class);
+		conf.setMapperClass(PreProcessing.QuestionTagMapper.class);
+		conf.setReducerClass(PreProcessing.UserTagReducer.class);
+		conf.setJarByClass(SODriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(Text.class);
+
+		conf.setOutputKeyClass(Text.class);
+		conf.setOutputValueClass(Text.class);
+
+		conf.setInputFormat(TextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "userTag"));
+		conf.set("path", args[0]);
+		
 		Job job = new Job(conf);
 
 		JobControl jobControl = new JobControl("jobControl");
@@ -181,22 +246,47 @@ public class SODriver extends Configured implements Tool {
 
 		startTimer();
 		preprocessData(args);
-		cooccurence(args);
-		userPreference(args);
 		stopTimer();
-
 		printline();
 		System.out.println("Total time for pre-processing data: "
 				+ getJobTimeInSecs() + "seconds");
+		printline();
+		startTimer();
+		cooccurence(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for co-occurence: "
+				+ getJobTimeInSecs() + "seconds");
+		printline();
+		startTimer();
+		userQuestionPairs(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for userQuestionPairs: "
+				+ getJobTimeInSecs() + "seconds");
+		printline();
+		startTimer();
+		userTagPairs(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for userTagPairs: "
+				+ getJobTimeInSecs() + "seconds");
+		printline();
 
+		startTimer();
+		userPreference(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for userPreference: "
+				+ getJobTimeInSecs() + "seconds");
 		return 0;
 	}
 
 	public static void main(String args[]) throws Exception {
 
 		System.out.println("Program started");
-		if (args.length != 5) {
-			System.err.println("Usage: SODriver <input> <temp> <output> <input2> <output2>");
+		if (args.length != 3) {
+			System.err.println("Usage: SODriver <path> <input> <output>");
 			System.exit(-1);
 		}
 
