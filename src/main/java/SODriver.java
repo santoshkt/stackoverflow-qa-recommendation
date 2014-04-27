@@ -17,6 +17,7 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
+import org.apache.hadoop.mapred.lib.aggregate.LongValueSum;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -55,7 +56,8 @@ public class SODriver extends Configured implements Tool {
 		conf.setOutputFormat(TextOutputFormat.class);
 
 		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "questionsCooccurence"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0]
+				+ "questionsCooccurenceTemp"));
 
 		Job job = new Job(conf);
 
@@ -84,8 +86,10 @@ public class SODriver extends Configured implements Tool {
 		conf.setInputFormat(KeyValueTextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[0] + "questionsCooccurence"));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
+		FileInputFormat.addInputPath(conf, new Path(args[0]
+				+ "questionsCooccurenceTemp"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0]
+				+ "questionsCooccurence"));
 
 		Job job = new Job(conf);
 
@@ -161,9 +165,8 @@ public class SODriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
-	
-	private void matrixMultiplicationPairs(String[] args) throws IOException
-	{
+
+	private void matrixMultiplicationPairs(String[] args) throws IOException {
 		System.out.println("matrix multiplication pairs..");
 		JobConf conf = new JobConf(SODriver.class);
 		conf.setMapperClass(MatrixMultiplication.MultiplicationPairsMapper.class);
@@ -171,7 +174,7 @@ public class SODriver extends Configured implements Tool {
 		conf.setJarByClass(SODriver.class);
 
 		conf.setMapOutputKeyClass(Text.class);
-		conf.setMapOutputValueClass(IntWritable.class);
+		conf.setMapOutputValueClass(Text.class);
 
 		conf.setOutputKeyClass(Text.class);
 		conf.setOutputValueClass(Text.class);
@@ -179,11 +182,13 @@ public class SODriver extends Configured implements Tool {
 		conf.setInputFormat(KeyValueTextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[0] + args[2]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "matrixProductOutput"));
+		FileInputFormat.addInputPath(conf, new Path(args[0]
+				+ "questionsCooccurence"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0]
+				+ "matrixProductOutput"));
 
 		conf.set("path", args[0]);
-		
+
 		Job job = new Job(conf);
 
 		JobControl jobControl = new JobControl("jobControl");
@@ -209,12 +214,12 @@ public class SODriver extends Configured implements Tool {
 		conf.setOutputKeyClass(Text.class);
 		conf.setOutputValueClass(Text.class);
 
-		conf.setInputFormat(TextInputFormat.class);
+		conf.setInputFormat(KeyValueTextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
 		FileInputFormat.addInputPath(conf, new Path(args[0]
 				+ "matrixProductOutput"));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[1]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
 		conf.set("path", args[0]);
 
 		Job job = new Job(conf);
@@ -313,14 +318,13 @@ public class SODriver extends Configured implements Tool {
 		// 2. Matrix multiplication of Questions Co-occurence matrix and User
 		// Preference matrix
 
-        startTimer();
+		startTimer();
 		matrixMultiplicationPairs(args);
 		stopTimer();
 		printline();
-		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()
-				+ "seconds");
-		
-		
+		System.out.println("Total time for matrix product: "
+				+ getJobTimeInSecs() + "seconds");
+
 		// 3. Recommend top questions
 		startTimer();
 		top10questions(args);

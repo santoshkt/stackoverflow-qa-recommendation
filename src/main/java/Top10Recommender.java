@@ -12,11 +12,13 @@ public class Top10Recommender {
 
 	public static class SOTop10Reducer extends MapReduceBase implements
 			Reducer<Text, Text, Text, Text> {
-		private TreeMap<Integer, String> repToRecordMap = new TreeMap<Integer, String>();
+		
 
 		public void reduce(Text key, Iterator<Text> values,
 				OutputCollector<Text, Text> output, Reporter reporter)
 				throws IOException {
+			
+			TreeMap<Integer, String> repToRecordMap = new TreeMap<Integer, String>();
 
 			// Input: UserId, List<QuestionId, score>
 
@@ -35,9 +37,9 @@ public class Top10Recommender {
 
 			String recQ = "";
 			for (String str : repToRecordMap.descendingMap().values()) {
-				recQ = str + ",";
+				recQ = recQ + str + ",";
 			}
-			recQ = recQ.replaceAll(" ,$", "");
+			recQ = recQ.substring(0, recQ.lastIndexOf(","));
 
 			output.collect(key, new Text(recQ));
 
