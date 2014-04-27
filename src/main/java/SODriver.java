@@ -160,6 +160,37 @@ public class SODriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
+	
+	private void matrixMultiplicationPairs(String[] args) throws IOException
+	{
+		System.out.println("matrix multiplication pairs..");
+		JobConf conf = new JobConf(SODriver.class);
+		conf.setMapperClass(MatrixMultiplication.MultiplicationPairsMapper.class);
+		conf.setReducerClass(MatrixMultiplication.MultiplicationPairsReducer.class);
+		conf.setJarByClass(SODriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(IntWritable.class);
+
+		conf.setOutputKeyClass(Text.class);
+		conf.setOutputValueClass(Text.class);
+
+		conf.setInputFormat(KeyValueTextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[0] + args[2]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "matrixProductOutput"));
+
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 	public static class JobRunner implements Runnable {
 		private JobControl control;
@@ -237,6 +268,13 @@ public class SODriver extends Configured implements Tool {
 		printline();
 		startTimer();
 		userTagPairs(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()
+				+ "seconds");
+		printline();
+		startTimer();
+		matrixMultiplicationPairs(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()

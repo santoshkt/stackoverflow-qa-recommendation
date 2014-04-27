@@ -5,24 +5,25 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 
 public class MatrixMultiplication{
 	
-	public static class MultiplicationPairs extends MapReduceBase implements 
-			Mapper<LongWritable, Text, Text, IntWritable>{
+	public static class MultiplicationPairsMapper extends MapReduceBase implements 
+			Mapper<Text, IntWritable, Text, IntWritable>{
 		
 		private BufferedReader bufferedReader;
 		private HashMap<String, HashSet<String>> questionUser = new HashMap<String, HashSet<String>>();
@@ -91,9 +92,39 @@ public class MatrixMultiplication{
 			
 		}
 
-		public void map(LongWritable key, Text value,
+		public void map(Text key, IntWritable value,
 				OutputCollector<Text, IntWritable> out, Reporter reporter)
 				throws IOException {
+			String[] values = key.toString().split(",");
+			HashSet<String> userHs = questionUser.get(values[1]);
+			if(userHs!=null)
+			{
+				for(String user: userHs)
+				{
+					out.collect(new Text(values[0]+","+values[1]+","+user),value);
+				}
+			}
+			else{
+				System.out.println("HOOLAHOOP:Question not found in user map");
+			}
+			
 		}
+	}
+	
+	public static class MultiplicationPairsReducer extends MapReduceBase implements
+			Reducer<Text, IntWritable, Text, Text>{
+
+		public void reduce(Text key, Iterator<IntWritable> value,
+				OutputCollector<Text, Text> out, Reporter reporter)
+				throws IOException {
+			Integer sum = 0;
+			while(value.hasNext())
+			{
+				sum = sum + value.next().get();
+			}
+			String[] values = key.toString().split(",");
+			out.collect(new Text(values[2]),new Text(values[0]+","+sum.toString()));
+		}
+		
 	}
 }
