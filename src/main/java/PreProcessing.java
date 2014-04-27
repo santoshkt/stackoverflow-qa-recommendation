@@ -80,7 +80,7 @@ public class PreProcessing {
 			for (String question1 : questions) {
 				for (String question2 : questions) {
 					if (question1.compareTo(question2) < 0)
-						output.collect(new Text("A," + question1 + ","
+						output.collect(new Text(question1 + ","
 								+ question2), new IntWritable(1));
 				}
 			}
@@ -115,37 +115,6 @@ public class PreProcessing {
 
 			output.collect(key, new IntWritable(sum));
 
-		}
-	}
-
-	public static class UserIDQuestionPairMatrix extends MapReduceBase
-			implements Mapper<LongWritable, Text, Text, IntWritable> {
-
-		public void map(LongWritable key, Text value,
-				OutputCollector<Text, IntWritable> output, Reporter reporter)
-				throws IOException {
-
-			// Input: XML String of the format <row key="value" />
-
-			// Parse the input string into a nice map
-			Map<String, String> parsed = Utils.transformXmlToMap(value
-					.toString());
-
-			// Grab the "Text" field, since that is what we are counting over
-			String postTypeId = parsed.get("PostTypeId");
-			String parentId = parsed.get("ParentId");
-			String ownerUserId = parsed.get("OwnerUserId");
-
-			if (postTypeId != null && postTypeId.equals("2")) {
-
-				if (parentId != null && ownerUserId != null) {
-					output.collect(
-							new Text("B," + ownerUserId + "," + parentId),
-							new IntWritable(1));
-				}
-			}
-
-			// Output: B,UserId, QuestionId 1
 		}
 	}
 

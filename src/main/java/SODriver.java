@@ -97,36 +97,6 @@ public class SODriver extends Configured implements Tool {
 		}
 	}
 
-	private void userPreference(String[] args) throws IOException {
-		System.out.println("User Reference Matrix....");
-		JobConf conf = new JobConf(SODriver.class);
-		conf.setMapperClass(PreProcessing.UserIDQuestionPairMatrix.class);
-		conf.setReducerClass(Reducer.class);
-		conf.setJarByClass(SODriver.class);
-		conf.setNumReduceTasks(0);
-
-		conf.setMapOutputKeyClass(Text.class);
-		conf.setMapOutputValueClass(IntWritable.class);
-
-		conf.setNumReduceTasks(0);
-
-		conf.setInputFormat(TextInputFormat.class);
-		conf.setOutputFormat(TextOutputFormat.class);
-
-		FileInputFormat.addInputPath(conf, new Path(args[0] + args[1]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "userPreference"));
-
-		Job job = new Job(conf);
-
-		JobControl jobControl = new JobControl("jobControl");
-		jobControl.addJob(job);
-		try {
-			handleRun(jobControl);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
 	private void userQuestionPairs(String args[]) throws IOException {
 		System.out.println("userQuestion pairs..");
 		JobConf conf = new JobConf(SODriver.class);
@@ -271,15 +241,6 @@ public class SODriver extends Configured implements Tool {
 		printline();
 		System.out.println("Total time for userTagPairs: " + getJobTimeInSecs()
 				+ "seconds");
-		printline();
-
-		startTimer();
-		userPreference(args);
-		stopTimer();
-		printline();
-		System.out.println("Total time for userPreference: "
-				+ getJobTimeInSecs() + "seconds");
-		printline();
 		return 0;
 	}
 
