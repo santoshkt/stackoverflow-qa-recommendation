@@ -17,7 +17,6 @@ import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapred.lib.IdentityMapper;
-import org.apache.hadoop.mapred.lib.aggregate.LongValueSum;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -204,7 +203,7 @@ public class SODriver extends Configured implements Tool {
 			URISyntaxException {
 		System.out.println("Suggesting top 10 questions for each user..");
 		JobConf conf = new JobConf(SODriver.class);
-		conf.setMapperClass(Top10Recommender.SOTop10Mapper.class);
+		conf.setMapperClass(IdentityMapper.class);
 		conf.setReducerClass(Top10Recommender.SOTop10Reducer.class);
 		conf.setJarByClass(SODriver.class);
 

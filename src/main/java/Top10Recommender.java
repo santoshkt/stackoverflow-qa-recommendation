@@ -4,12 +4,9 @@ import java.util.TreeMap;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -21,7 +18,6 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Mapper;
-
 
 public class Top10Recommender {
 
@@ -92,19 +88,16 @@ public class Top10Recommender {
 				System.out.println("SWERR: File error.");
 			}
 		}
-		
+
 		public void map(Text key, Text value, OutputCollector<Text, Text> out,
 				Reporter reporter) throws IOException {
 			String[] values = value.toString().split(",");
 			HashSet<String> userHs = questionUser.get(values[0]);
 			if (userHs != null) {
-				if(userHs.contains(key.toString()))
-				{
-					//do nothing
-				}
-				else
-				{
-					out.collect(key,value);
+				if (userHs.contains(key.toString())) {
+					// do nothing
+				} else {
+					out.collect(key, value);
 				}
 			} else {
 				System.out.println("HOOLAHOOP:Question not found in user map");
@@ -115,12 +108,11 @@ public class Top10Recommender {
 
 	public static class SOTop10Reducer extends MapReduceBase implements
 			Reducer<Text, Text, Text, Text> {
-		
 
 		public void reduce(Text key, Iterator<Text> values,
 				OutputCollector<Text, Text> output, Reporter reporter)
 				throws IOException {
-			
+
 			TreeMap<Integer, String> repToRecordMap = new TreeMap<Integer, String>();
 
 			// Input: UserId, List<QuestionId, score>
