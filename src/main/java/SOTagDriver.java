@@ -158,7 +158,7 @@ public class SOTagDriver extends Configured implements Tool {
 				+ "generatedUserTags"));
 		FileInputFormat.addInputPath(conf, new Path(args[0]
 				+ "generatedQuestionTags"));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "similarity"));
 
 		conf.set("bucketCount", "1000");
 		conf.setOutputValueGroupingComparator(TagSimilarity.IdPairGroupComprator.class);
@@ -174,9 +174,9 @@ public class SOTagDriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
-	
-	private void lowest10DistantQuestions(String[] args) throws IOException, 
-		URISyntaxException{
+
+	private void lowest10DistantQuestions(String[] args) throws IOException,
+			URISyntaxException {
 		System.out.println("Suggesting top 10 questions for each user..");
 		JobConf conf = new JobConf(SOTagDriver.class);
 		conf.setMapperClass(Lowest10Recommender.SOTLowest10Mapper.class);
@@ -192,8 +192,8 @@ public class SOTagDriver extends Configured implements Tool {
 		conf.setInputFormat(TextInputFormat.class);
 		conf.setOutputFormat(TextOutputFormat.class);
 
-		FileInputFormat.addInputPath(conf, new Path(args[0] + args[2]));
-		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "Top10SimilarRecommendations"));
+		FileInputFormat.addInputPath(conf, new Path(args[0] + "similarity"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
 		conf.set("path", args[0]);
 
 		Job job = new Job(conf);
@@ -243,8 +243,9 @@ public class SOTagDriver extends Configured implements Tool {
 		lowest10DistantQuestions(args);
 		stopTimer();
 		printline();
-		System.out.println("Total time for finding similarity: "
-				+ getJobTimeInSecs() + "seconds");
+		System.out
+				.println("Total time for recommending top 10 with tag similarity: "
+						+ getJobTimeInSecs() + "seconds");
 		return 0;
 	}
 

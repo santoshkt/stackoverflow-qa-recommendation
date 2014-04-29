@@ -113,9 +113,12 @@ public class TagSimilarity {
 						simCount++;
 						idTagsSplit = userStr.split(",");
 						userId = idTagsSplit[0];
-						if(sim!=1.0)
-						{
-							valueHolder.set(userId + "," + questionId + "," + sim);
+
+						// If distance is 1.0, they are farthest and have
+						// nothing in common.
+						if (sim != 1.0) {
+							valueHolder.set(userId + "," + questionId + ","
+									+ sim);
 							out.collect(NullWritable.get(), valueHolder);
 						}
 					}
