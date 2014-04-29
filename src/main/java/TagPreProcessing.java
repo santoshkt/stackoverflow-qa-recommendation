@@ -10,33 +10,30 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 
-
 public class TagPreProcessing {
-	public static class UserTagsReducer extends MapReduceBase implements 
-			Reducer<Text, Text, Text, Text>
-	{
+	public static class UserTagsReducer extends MapReduceBase implements
+			Reducer<Text, Text, Text, Text> {
 
 		public void reduce(Text key, Iterator<Text> values,
 				OutputCollector<Text, Text> out, Reporter reporter)
 				throws IOException {
 			String str = "";
-			while(values.hasNext())
-			{
-				str = str+""+values.next().toString()+",";
+			while (values.hasNext()) {
+				str = str + "" + values.next().toString() + ",";
 			}
-			if (str.length() > 0 && str.charAt(str.length()-1)==',') {
-			    str = str.substring(0, str.length()-1);
-			  }
-			out.collect(new Text("U,"+key.toString()), new Text(str));			
+			if (str.length() > 0 && str.charAt(str.length() - 1) == ',') {
+				str = str.substring(0, str.length() - 1);
+			}
+			out.collect(new Text("U," + key.toString()), new Text(str));
 		}
 	}
-	
-	public static class QuestionTagsMapper extends MapReduceBase implements
-			Mapper<LongWritable, Text, Text, Text>
-	{
 
-		public void map(LongWritable key, Text value, OutputCollector<Text, Text> out,
-				Reporter reporter) throws IOException {
+	public static class QuestionTagsMapper extends MapReduceBase implements
+			Mapper<LongWritable, Text, Text, Text> {
+
+		public void map(LongWritable key, Text value,
+				OutputCollector<Text, Text> out, Reporter reporter)
+				throws IOException {
 			Map<String, String> parsed = Utils.transformXmlToMap(value
 					.toString());
 
@@ -53,29 +50,27 @@ public class TagPreProcessing {
 
 				}
 			}
-			
+
 		}
-		
+
 	}
-	
+
 	public static class QuestionTagsReducer extends MapReduceBase implements
-		Reducer<Text, Text, Text, Text>
-	{
+			Reducer<Text, Text, Text, Text> {
 
 		public void reduce(Text key, Iterator<Text> values,
 				OutputCollector<Text, Text> out, Reporter reporter)
 				throws IOException {
 			String str = "";
-			while(values.hasNext())
-			{
-				str = str+""+values.next().toString()+",";
+			while (values.hasNext()) {
+				str = str + "" + values.next().toString() + ",";
 			}
-			if (str.length() > 0 && str.charAt(str.length()-1)==',') {
-			    str = str.substring(0, str.length()-1);
+			if (str.length() > 0 && str.charAt(str.length() - 1) == ',') {
+				str = str.substring(0, str.length() - 1);
 			}
-			out.collect(new Text("Q,"+key.toString()), new Text(str));
-			
+			out.collect(new Text("Q," + key.toString()), new Text(str));
+
 		}
-		
+
 	}
 }
