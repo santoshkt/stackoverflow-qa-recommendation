@@ -203,7 +203,7 @@ public class SODriver extends Configured implements Tool {
 			URISyntaxException {
 		System.out.println("Suggesting top 10 questions for each user..");
 		JobConf conf = new JobConf(SODriver.class);
-		conf.setMapperClass(IdentityMapper.class);
+		conf.setMapperClass(Top10Recommender.SOTop10Mapper.class);
 		conf.setReducerClass(Top10Recommender.SOTop10Reducer.class);
 		conf.setJarByClass(SODriver.class);
 

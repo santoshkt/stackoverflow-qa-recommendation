@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Date;
 
 import org.apache.hadoop.conf.Configuration;
@@ -173,6 +174,38 @@ public class SOTagDriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
+	
+	private void lowest10DistantQuestions(String[] args) throws IOException, 
+		URISyntaxException{
+		System.out.println("Suggesting top 10 questions for each user..");
+		JobConf conf = new JobConf(SOTagDriver.class);
+		conf.setMapperClass(Lowest10Recommender.SOTLowest10Mapper.class);
+		conf.setReducerClass(Lowest10Recommender.SOTLowest10Reducer.class);
+		conf.setJarByClass(SOTagDriver.class);
+
+		conf.setMapOutputKeyClass(Text.class);
+		conf.setMapOutputValueClass(Text.class);
+
+		conf.setOutputKeyClass(Text.class);
+		conf.setOutputValueClass(Text.class);
+
+		conf.setInputFormat(TextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[0] + args[2]));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + "Top10SimilarRecommendations"));
+		conf.set("path", args[0]);
+
+		Job job = new Job(conf);
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 
 	private void printline() {
 		System.out.print("\n");
@@ -186,14 +219,14 @@ public class SOTagDriver extends Configured implements Tool {
 	public int run(String[] args) throws Exception {
 
 		startTimer();
-		//questionTagGenerator(args);
+		questionTagGenerator(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for question Tag generation data: "
 				+ getJobTimeInSecs() + "seconds");
 		printline();
 		startTimer();
-		//userTagGenerator(args);
+		userTagGenerator(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for user Tag Generation: "
@@ -201,6 +234,13 @@ public class SOTagDriver extends Configured implements Tool {
 		printline();
 		startTimer();
 		findSimilarity(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for finding similarity: "
+				+ getJobTimeInSecs() + "seconds");
+		printline();
+		startTimer();
+		lowest10DistantQuestions(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for finding similarity: "

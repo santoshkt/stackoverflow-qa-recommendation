@@ -113,9 +113,11 @@ public class TagSimilarity {
 						simCount++;
 						idTagsSplit = userStr.split(",");
 						userId = idTagsSplit[0];
-
-						valueHolder.set(userId + "," + questionId + "," + sim);
-						out.collect(NullWritable.get(), valueHolder);
+						if(sim!=1.0)
+						{
+							valueHolder.set(userId + "," + questionId + "," + sim);
+							out.collect(NullWritable.get(), valueHolder);
+						}
 					}
 
 				}
