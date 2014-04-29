@@ -14,7 +14,7 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.hadoop.mapred.Partitioner;
 
 public class TagSimilarity {
 	public static class TagSimilarityMapper extends MapReduceBase implements
@@ -22,12 +22,19 @@ public class TagSimilarity {
 
 		private int bucketCount;
 		private long hash;
-		private LongWritable keyHolder;
-		private Text valueHolder;
+		private LongWritable keyHolder = new LongWritable();
+		private Text valueHolder = new Text();
+		private int userCount = 0;
+		private int questionCount = 0;
 
 		public void configure(JobConf job) {
 			String bucketCountStr = job.get("bucketCount");
 			bucketCount = Integer.parseInt(bucketCountStr);
+		}
+
+		public void close() {
+			System.out.println("User: " + userCount + " Questions: "
+					+ questionCount);
 		}
 
 		public void map(Text key, Text value,
@@ -47,18 +54,20 @@ public class TagSimilarity {
 					keyHolder.set((hash * bucketCount + i) * 10);
 					out.collect(keyHolder, valueHolder);
 				}
+				userCount++;
 			} else {
 				for (int i = 0; i < bucketCount; ++i) {
 					keyHolder.set(((i * bucketCount + hash) * 10) + 1);
 					out.collect(keyHolder, valueHolder);
 				}
+				questionCount++;
 			}
 		}
 
 	}
 
 	public static class TagSimilarityReducer extends MapReduceBase implements
-			Reducer<Text, Text, NullWritable, Text> {
+			Reducer<LongWritable, Text, NullWritable, Text> {
 
 		private Text valueHolder = new Text();
 		private List<String> userTypeValues = new ArrayList<String>();
@@ -68,52 +77,59 @@ public class TagSimilarity {
 		private boolean userType;
 		private String idTagsValue;
 		private String[] idTagsSplit;
+		private int userCount = 0;
+		private int questionCount = 0;
+		private int simCount = 0;
 
-		public void reduce(Text key, Iterator<Text> values,
+		public void close() {
+			System.out.println("Reducer: User: " + userCount + " Questions: "
+					+ questionCount + " Similarity Count: " + simCount);
+		}
+
+		public void reduce(LongWritable key, Iterator<Text> values,
 				OutputCollector<NullWritable, Text> out, Reporter reporter)
 				throws IOException {
 
 			userTypeValues.clear();
 
-			StringBuilder sb = new StringBuilder();
-
 			while (values.hasNext()) {
 				Text value = values.next();
 
 				userType = value.toString().startsWith("U");
-				idTagsValue = value.toString().substring(2,
-						value.toString().length());
+				idTagsValue = value.toString().substring(2);
 
 				if (userType) {
 					userTypeValues.add(idTagsValue);
+					userCount++;
 				} else {
 					String questionStr = idTagsValue;
 					idTagsSplit = questionStr.split(",");
 					questionId = idTagsSplit[0];
+					questionCount++;
 
 					for (String userStr : userTypeValues) {
 
 						sim = findSimilarity(userStr, questionStr);
+						simCount++;
 						idTagsSplit = userStr.split(",");
 						userId = idTagsSplit[0];
 
-						sb.append(userId).append(",").append(questionId)
-								.append(",").append(sim);
-
-						valueHolder.set(sb.toString());
+						valueHolder.set(userId + "," + questionId + "," + sim);
+						out.collect(NullWritable.get(), valueHolder);
 					}
-					out.collect(NullWritable.get(), valueHolder);
+
 				}
 			}
 		}
 
 		public double findSimilarity(String users, String questions) {
+
 			double distance = 1.0;
 			int position = users.indexOf(",");
 			users = users.substring(position + 1);
 			position = questions.indexOf(",");
 			questions = questions.substring(position + 1);
-			
+
 			String[] srcTerms = users.split(",");
 			String[] trgTerms = questions.split(",");
 
@@ -136,12 +152,17 @@ public class TagSimilarity {
 
 	}
 
-	public static class IdPairPartitioner extends
+	public static class IdPairPartitioner implements
 			Partitioner<LongWritable, Text> {
 		public int getPartition(LongWritable key, Text value, int numPartitions) {
 			// consider only base part of key
 			int keyVal = (int) (key.get() / 10);
 			return keyVal % numPartitions;
+		}
+
+		public void configure(JobConf jobConf) {
+			// No configuration required
+
 		}
 
 	}

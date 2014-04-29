@@ -4,7 +4,8 @@ import java.util.Date;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileOutputFormat;
@@ -75,8 +76,8 @@ public class SOTagDriver extends Configured implements Tool {
 					+ control.getFailedJobs().toString());
 		}
 	}
-	
-	private void questionTagGenerator(String[] args) throws IOException{
+
+	private void questionTagGenerator(String[] args) throws IOException {
 		System.out.println("Question Tag generation..");
 		JobConf conf = new JobConf(SOTagDriver.class);
 		conf.setMapperClass(TagPreProcessing.QuestionTagsMapper.class);
@@ -96,7 +97,7 @@ public class SOTagDriver extends Configured implements Tool {
 		FileOutputFormat.setOutputPath(conf, new Path(args[0]
 				+ "generatedQuestionTags"));
 		Job job = new Job(conf);
-		
+
 		JobControl jobControl = new JobControl("jobControl");
 		jobControl.addJob(job);
 		try {
@@ -105,8 +106,8 @@ public class SOTagDriver extends Configured implements Tool {
 			e.printStackTrace();
 		}
 	}
-	
-	private void userTagGenerator(String[] args) throws IOException{
+
+	private void userTagGenerator(String[] args) throws IOException {
 		System.out.println("User Tag generation..");
 		JobConf conf = new JobConf(SOTagDriver.class);
 		conf.setMapperClass(IdentityMapper.class);
@@ -126,7 +127,44 @@ public class SOTagDriver extends Configured implements Tool {
 		FileOutputFormat.setOutputPath(conf, new Path(args[0]
 				+ "generatedUserTags"));
 		Job job = new Job(conf);
-		
+
+		JobControl jobControl = new JobControl("jobControl");
+		jobControl.addJob(job);
+		try {
+			handleRun(jobControl);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void findSimilarity(String[] args) throws IOException {
+		System.out.println("Finding similarity..");
+		JobConf conf = new JobConf(SOTagDriver.class);
+		conf.setMapperClass(TagSimilarity.TagSimilarityMapper.class);
+		conf.setReducerClass(TagSimilarity.TagSimilarityReducer.class);
+		conf.setJarByClass(SOTagDriver.class);
+
+		conf.setMapOutputKeyClass(LongWritable.class);
+		conf.setMapOutputValueClass(Text.class);
+
+		conf.setOutputKeyClass(NullWritable.class);
+		conf.setOutputValueClass(Text.class);
+
+		conf.setInputFormat(KeyValueTextInputFormat.class);
+		conf.setOutputFormat(TextOutputFormat.class);
+
+		FileInputFormat.addInputPath(conf, new Path(args[0]
+				+ "generatedUserTags"));
+		FileInputFormat.addInputPath(conf, new Path(args[0]
+				+ "generatedQuestionTags"));
+		FileOutputFormat.setOutputPath(conf, new Path(args[0] + args[2]));
+
+		conf.set("bucketCount", "1000");
+		conf.setOutputValueGroupingComparator(TagSimilarity.IdPairGroupComprator.class);
+		conf.setPartitionerClass(TagSimilarity.IdPairPartitioner.class);
+
+		Job job = new Job(conf);
+
 		JobControl jobControl = new JobControl("jobControl");
 		jobControl.addJob(job);
 		try {
@@ -148,18 +186,25 @@ public class SOTagDriver extends Configured implements Tool {
 	public int run(String[] args) throws Exception {
 
 		startTimer();
-		questionTagGenerator(args);;
+		//questionTagGenerator(args);
 		stopTimer();
 		printline();
 		System.out.println("Total time for question Tag generation data: "
 				+ getJobTimeInSecs() + "seconds");
 		printline();
 		startTimer();
-		userTagGenerator(args);
+		//userTagGenerator(args);
 		stopTimer();
 		printline();
-		System.out.println("Total time for user Tag Generation: " + getJobTimeInSecs()
-				+ "seconds");
+		System.out.println("Total time for user Tag Generation: "
+				+ getJobTimeInSecs() + "seconds");
+		printline();
+		startTimer();
+		findSimilarity(args);
+		stopTimer();
+		printline();
+		System.out.println("Total time for finding similarity: "
+				+ getJobTimeInSecs() + "seconds");
 		return 0;
 	}
 
